@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Riassegna categorie — Spesa Esselunga</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --txt: #e2e8f0; --muted: #94a3b8; --accent: #34d399; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui; background: var(--bg); color: var(--txt); }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; gap: 1rem; flex-wrap: wrap; }
+  h1 { font-size: 1.3rem; margin: 0; }
+  .barra { padding: 0 1.5rem; display: flex; gap: .8rem; flex-wrap: wrap; }
+  .barra input, .barra select {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: .55rem .8rem; color: var(--txt); font-size: .85rem;
+  }
+  .barra input { flex: 1; min-width: 200px; }
+  button { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: .55rem 1rem;
+           color: var(--txt); cursor: pointer; font-size: .85rem; }
+  button.primo { background: var(--accent); border-color: var(--accent); color: #052e20; font-weight: 600; }
+  button.mini { padding: .2rem .55rem; font-size: .75rem; }
+  .msg { padding: .5rem 1.5rem; color: var(--muted); font-size: .8rem; min-height: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: .8rem; }
+  th, td { padding: .35rem .6rem; text-align: left; border-bottom: 1px solid #334155; }
+  th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--bg); z-index: 1; }
+  select { background: #0f172a; color: var(--txt); border: 1px solid #334155; border-radius: 6px;
+           padding: .25rem .4rem; font-size: .8rem; max-width: 260px; }
+  .n { text-align: right; color: var(--muted); }
+  .badge { background: #334155; border-radius: 6px; padding: .08rem .35rem; font-size: .68rem; color: #fbbf24; }
+  .nuova { color: #fbbf24; font-weight: 500; }
+  .riga-nuova input { background: #0f172a; color: var(--txt); border: 1px solid #fbbf24;
+                      border-radius: 6px; padding: .25rem .5rem; font-size: .8rem; width: 220px; }
+  tr.gruppo td { background: #16233b; color: #34d399; font-weight: 600; font-size: .8rem; padding: .45rem .6rem; }
+  .scroll { max-height: 75vh; overflow-y: auto; padding: 0 1.5rem 2rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Riassegna categorie</h1>
+  <div>
+    <span class="msg" style="padding:0">le modifiche si salvano da sole</span>
+    <button class="primo" id="btn-refresh">Ricarica dashboard</button>
+    <a href="/" style="color:#34d399">← dashboard</a>
+  </div>
+</header>
+<div class="barra">
+  <input id="ricerca" placeholder="Cerca prodotto…">
+  <select id="ordina" title="Ordine">
+    <option value="nome">Ordina: nome A-Z</option>
+    <option value="cat">Ordina: per categoria</option>
+    <option value="n">Ordina: per volte comprato</option>
+  </select>
+  <select id="fil-cat" title="Filtra per categoria">
+    <option value="">Tutte le categorie</option>
+  </select>
+</div>
+<div class="msg" id="msg"></div>
+<div class="scroll">
+<table>
+<thead><tr><th>Prodotto</th><th class="n">Volte</th><th>Categoria attuale</th><th>Cambia in</th></tr></thead>
+<tbody id="righe"></tbody>
+</table>
+</div>
+<script>
+let prodotti = [];
+let categorie = new Set();
+let sovrascritti = new Set();
+const statoRiga = {}; // idx -> 'ok' | 'nuova' | {nome:...}
+
+async function carica() {
+  const r = await (await fetch('/api/prodotti')).json();
+  prodotti = r;
+  r.forEach(p => categorie.add(p.categoria));
+  const ovr = await (await fetch('/api/sovrascritte')).json();
+  sovrascritti = new Set(ovr.map(k => k.toUpperCase()));
+  const fc = document.getElementById('fil-cat');
+  fc.innerHTML = '<option value="">Tutte le categorie</option>' +
+    [...categorie].sort((a, b) => a.localeCompare(b, 'it')).map(c =>
+      `<option value="${c}">${c}</option>`).join('');
+  disegna();
+}
+
+function ordinati() {
+  const mode = document.getElementById('ordina').value;
+  const arr = prodotti.map((p, i) => ({ ...p, idx: i }));
+  if (mode === 'nome') arr.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+  else if (mode === 'cat') arr.sort((a, b) => a.categoria.localeCompare(b.categoria, 'it') || a.nome.localeCompare(b.nome, 'it'));
+  else arr.sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'it'));
+  return arr;
+}
+
+function disegna() {
+  const fil = (document.getElementById('ricerca').value || '').trim().toUpperCase();
+  const fc = document.getElementById('fil-cat').value;
+  const list = ordinati().filter(p =>
+    (!fil || p.nome.toUpperCase().includes(fil)) && (!fc || p.categoria === fc));
+
+  let html = '';
+  let catPrima = null;
+  const perCat = document.getElementById('ordina').value === 'cat';
+  for (const p of list) {
+    if (perCat && p.categoria !== catPrima) {
+      catPrima = p.categoria;
+      html += `<tr class="gruppo"><td colspan="4">${catPrima || '(senza categoria)'}</td></tr>`;
+    }
+    const st = statoRiga[p.idx] || 'ok';
+    const selCat = categorie;
+    const opts = [...selCat].sort((a, b) => a.localeCompare(b, 'it')).map(c =>
+      `<option value="${c}" ${c === p.categoria ? 'selected' : ''}>${c}</option>`).join('');
+    html += `<tr>
+      <td>${p.nome} ${sovrascritti.has(p.nome.toUpperCase()) ? '<span class="badge">manuale</span>' : ''}</td>
+      <td class="n">${p.n}</td>
+      <td>${st === 'nuova' ? '<em>…</em>' : p.categoria}</td>
+      <td>
+        ${st === 'nuova'
+          ? `<input id="in-${p.idx}" placeholder="nome nuova categoria" autofocus>
+             <button class="mini primo" id="ok-${p.idx}" style="background:#34d399;color:#052e20">✓</button>
+             <button class="mini" id="no-${p.idx}">✕</button>`
+          : `<select id="sel-${p.idx}">${opts}<option value="__NUOVA__" class="nuova">＋ nuova categoria…</option></select>`
+        }
+      </td>
+    </tr>`;
+  }
+  const tb = document.getElementById('righe');
+  tb.innerHTML = html || '<tr><td colspan="4" style="color:#64748b;padding:1rem">Nessun prodotto</td></tr>';
+
+  // bindi
+  list.forEach(p => {
+    const sel = document.getElementById('sel-' + p.idx);
+    if (sel) sel.onchange = () => {
+      if (sel.value === '__NUOVA__') {
+        statoRiga[p.idx] = 'nuova';
+        disegna();
+        document.getElementById('in-' + p.idx).focus();
+      } else salvaCategoria(p, sel.value);
+    };
+  });
+  // righe in creazione: ✓ / ✕ / invio
+  list.forEach(p => {
+    const st = statoRiga[p.idx] || 'ok';
+    if (st !== 'nuova') return;
+    const btnOk = document.getElementById('ok-' + p.idx);
+    const btnNo = document.getElementById('no-' + p.idx);
+    const inp = document.getElementById('in-' + p.idx);
+    const conferma = () => {
+      const nome = inp.value.trim();
+      if (!nome) return;
+      salvaCategoria(p, nome);
+    };
+    btnOk.onclick = conferma;
+    inp.onkeydown = e => { if (e.key === 'Enter') conferma(); if (e.key === 'Escape') { statoRiga[p.idx] = 'ok'; disegna(); } };
+    btnNo.onclick = () => { statoRiga[p.idx] = 'ok'; disegna(); };
+  });
+}
+
+async function salvaCategoria(p, cat) {
+  const idx = p.idx ?? prodotti.indexOf(p);
+  await fetch('/api/assegna', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [p.nome]: cat }) });
+  const originale = prodotti.find(x => x.nome === p.nome);
+  if (originale) { originale.categoria = cat; }
+  categorie.add(cat);
+  sovrascritti.add(p.nome.toUpperCase());
+  statoRiga[idx] = 'ok';
+  const fc = document.getElementById('fil-cat');
+  if (![...fc.options].some(o => o.value === cat)) {
+    const op = document.createElement('option');
+    op.value = cat; op.textContent = cat;
+    fc.appendChild(op);
+  }
+  document.getElementById('msg').textContent = `«${p.nome}» → ${cat}  (premi “Ricarica dashboard” per ricalcolare i grafici)`;
+  disegna();
+}
+
+document.getElementById('btn-refresh').onclick = async () => {
+  document.getElementById('msg').textContent = 'Rigenero il database…';
+  await fetch('/api/ricarica', { method: 'POST' });
+  window.location.href = '/';
+};
+
+document.getElementById('ricerca').addEventListener('input', disegna);
+document.getElementById('ordina').addEventListener('change', disegna);
+document.getElementById('fil-cat').addEventListener('change', disegna);
+carica();
+</script>
+</body>
+</html>

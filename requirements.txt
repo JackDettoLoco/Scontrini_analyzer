@@ -1,0 +1,14 @@
+# Dipendenze di "Spesa Esselunga".
+#
+# Nucleo della web app (dashboard): fastapi + uvicorn.
+fastapi==0.142.2
+uvicorn==0.54.0
+
+# Elaborazione PDF dei scontrini (docling, CPU, nessun modello):
+# necessaria solo per elaborare NUOVI scontrini; la dashboard su dati gia'
+# estratti funziona anche senza (il DB viene rigenerato al via).
+docling==2.135.0
+
+# Cliente HTTP per il dizionario di categorie generato dal modello locale
+# (script/genera_dizionario.py, passo opzionale gia' completato).
+httpx==0.28.1

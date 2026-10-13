@@ -1,0 +1,16 @@
+# log di lavoro (rigenerabili)
+dati/*.log
+
+# dati personali: MAI pubblicati (repository anonimizzato)
+scontrini/
+dati/estrazione/
+dati/sconti.json
+dati/estrazione_errori.json
+dati/test_scontrino.md
+
+# markdown vecchi (sostituendi dai JSON del converter nativo)
+dati/estrazione/*.md
+__pycache__/
+
+# DB auto-rigenerato allavvio (non deterministico): non va in git
+dati/spese.db
