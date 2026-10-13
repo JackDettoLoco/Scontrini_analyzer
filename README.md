@@ -140,6 +140,27 @@ ESSEL_PORT=9000 CONDA_ENV=docling ./start.sh
 
 ---
 
+## Come è stato costruito
+
+Questo progetto è stato sviluppato **interamente da un agente AI in locale**,
+senza alcun servizio cloud:
+
+- **Agente**: [pi](https://github.com/badlogic/pi-mono) (pi-coding-agent),
+  che ha letto le regole in `AGENTS.md` e ha iterato: lettura dei PDF, parser,
+  classificazione, dashboard, grafici, riassegnazioni manuali, documentazione.
+- **Modello**: Qwen 3.8 (27B) in quantizzazione *ridge 3.7bpw* con contesto 160k
+  (`qwen38-27b-ridge-3.7bpw-160k`), servito in locale con **llama.cpp**
+  (`llama-server`) su una **RTX 4080 Super**.
+- **Split GPU/CPU**: il LLM girava sulla GPU; l'estrazione PDF (docling) e
+tutta la pipeline Python su CPU, così i due non si contendevano la memoria.
+- **Classificazione**: il dizionario keyword→categoria è stato generato dal
+  modello locale (`script/genera_dizionario.py`), poi rifinito con regole
+deterministiche e riassegnazioni manuali dalla pagina web (le "voci Altre"
+sparse tra 441 → 15 in due giri, con ricerche web per i prodotti non ovvi).
+
+Il risultato: un pipeline completo (estrazione, parsing, DB, dashboard) scritto
+e debuggato dall'agente, con l'umano che fornisce solo input, regole e feedback.
+
 ## ⚠️ Privacy
 
 Questo repository è **anonimizzato**: non contiene scontrini, dati estratti,
