@@ -1,3 +1,5 @@
+{che dire; questo è sato il progetto di test di qwen3.8 27b tutto in locale. ci ho messo una settimana non continuativa per afare i vari aggiustamenti e implementazioni graduali. è niente di più che un giocattolo per vedere cosa compro, sfruttando gli scontrini virtuali di esselunga. Però sono contento perche avendo usato da subito llm locali ho visto quanto sono migliorati. gptoss da 120b non sarebbe stato in grado di fare una cosa del genere. non credo che la tecnologia locale migliorerà ancora tanto per un fatto di densità di inteligenza. Probabilemte manca poco per aver il "miglior" modello locale che possa girare su hardware non di altissima fascia. Sono contento.}
+{ps se non vi funziona chiedete a un llm di aggiustarlo che così può leggere i vari documenti di progetto e non distruggere tutto. bacini}
 # Spesa Esselunga
 
 Dashboard locale (FastAPI + Chart.js) che legge i **scontrini PDF** di Esselunga,
