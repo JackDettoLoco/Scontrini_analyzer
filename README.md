@@ -155,8 +155,8 @@ senza alcun servizio cloud:
 tutta la pipeline Python su CPU, così i due non si contendevano la memoria.
 - **Classificazione**: il dizionario keyword→categoria è stato generato dal
   modello locale (`script/genera_dizionario.py`), poi rifinito con regole
-deterministiche e riassegnazioni manuali dalla pagina web (le "voci Altre"
-sparse tra 441 → 15 in due giri, con ricerche web per i prodotti non ovvi).
+deterministiche e riassegnazioni manuali dalla pagina web (le voci "Altro" portate da 441 a 15
+in due giri, con ricerche web per i prodotti non ovvi).
 
 Il risultato: un pipeline completo (estrazione, parsing, DB, dashboard) scritto
 e debuggato dall'agente, con l'umano che fornisce solo input, regole e feedback.
